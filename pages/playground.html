@@ -16,6 +16,11 @@ title: '"reflect" function example'
       src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@2.x.x/dist/alpine.min.js"
       defer
     ></script>
+    <link
+      rel="stylesheet"
+      href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/styles/default.min.css"
+    />
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.18.1/build/highlight.min.js"></script>
   </head>
 
   <body class="flex flex-col">
@@ -48,57 +53,25 @@ title: '"reflect" function example'
         >
           <h3 class="text-xl font-semibold text-gray-900">Code</h3>
         </div>
-        <pre><code class="w-full inline-block overflow-scroll" x-text="content()"></code></pre>
+        <pre><code class="w-full inline-block overflow-scroll" x-html="content()"></code></pre>
       </div>
       <script>
         function reflect() {
-          const INDENT = "\n  ";
-          const ignore = (el) => {
-            return (
-              el.dataset.hasOwnProperty("reflectIgnore") || el.tagName === "BR"
-            );
-          };
           return {
             showClass: false,
             toggleShowClass() {
               this.showClass = !this.showClass;
             },
+            redactClasses(html) {
+              return html.replace(/[\s]*class="[^"]*"[\s]*/gi, ' class="*" ')
+            },
             content() {
-              return this.recurse(
+              const markup = (
                 document.querySelector("[data-reflect-root]") || document.body
-              );
-            },
-            recurse(el) {
-              if (ignore(el)) {
-                return "";
-              }
-              if (el.children.length === 0) {
-                return this.wrap(el, el.innerHTML);
-              }
-              return this.wrap(
-                el,
-                [...el.children]
-                  .map((el) => this.recurse(el))
-                  .filter(Boolean)
-                  .join(INDENT)
-              );
-            },
-            wrap(el, content) {
-              const tagName = el.tagName.toLowerCase();
-              const attributes = [...el.attributes]
-                .filter(({ name }) => {
-                  if (name === "class" && !this.showClass) {
-                    return false;
-                  }
-                  return true;
-                })
-                .map(({ name, value }) => `${name}="${value}"`)
-                .join(" ");
-              return [
-                `<${tagName}${attributes ? " " + attributes : ""}>`,
-                content,
-                `</${tagName}>`,
-              ].join(INDENT);
+              ).outerHTML;
+              const processed = this.showClass ? markup : this.redactClasses(markup);
+              const html = hljs.highlight("html", processed);
+              return html.value;
             },
           };
         }
